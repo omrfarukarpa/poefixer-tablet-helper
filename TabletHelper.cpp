@@ -21,7 +21,7 @@
 #include <unordered_map>
 #include <vector>
 
-inline constexpr const char* kTabletHelperVersion    = "1.0.0";
+inline constexpr const char* kTabletHelperVersion    = "1.1.0";
 inline constexpr const char* kTabletHelperMaintainer = "Omer Faruk ARPA";
 
 class TabletHelperPlugin : public PluginSDK::Plugin {
@@ -103,9 +103,10 @@ public:
 
         DrawDisplaySettings();
         DrawDetectionSettings();
+        DrawProfileSelector();
 
         ImGui::SeparatorText("Tablet types");
-        for (auto& t : m_settings.types)
+        for (auto& t : m_settings.ActiveTypes())
             DrawTypeConfig(t);
     }
 
@@ -193,6 +194,77 @@ private:
         ImGui::SliderInt("Scan interval (ms)", &m_settings.scanIntervalMs,
                          TabletHelperConfig::kScanIntervalMinMs,
                          TabletHelperConfig::kScanIntervalMaxMs);
+    }
+
+    void DrawProfileSelector() {
+        ImGui::SeparatorText("Filter profile");
+
+        auto& profiles = m_settings.profiles;
+        if (profiles.empty()) profiles.push_back(TabletHelperConfig::Profile{});
+        int& active = m_settings.activeProfile;
+        if (active < 0 || active >= static_cast<int>(profiles.size())) active = 0;
+
+        ImGui::SetNextItemWidth(240.f);
+        if (ImGui::BeginCombo("##profile", profiles[active].name.c_str())) {
+            for (int i = 0; i < static_cast<int>(profiles.size()); ++i) {
+                ImGui::PushID(i);
+                const bool sel = (i == active);
+                if (ImGui::Selectable(profiles[i].name.c_str(), sel)) active = i;
+                if (sel) ImGui::SetItemDefaultFocus();
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::SameLine();
+        HelpMarker("Each profile holds its own per-type colors, bonus selections "
+                   "and uses-left filters. Switch to instantly re-filter for a "
+                   "different strat. Display and detection settings above are "
+                   "shared across all profiles.");
+
+        // Rename the active profile in place.
+        {
+            char buf[64];
+            std::snprintf(buf, sizeof(buf), "%s", profiles[active].name.c_str());
+            ImGui::SetNextItemWidth(240.f);
+            if (ImGui::InputTextWithHint("Name", "profile name...", buf, sizeof(buf)))
+                profiles[active].name = buf;
+        }
+
+        const int n = static_cast<int>(profiles.size());
+        const bool atCap = n >= TabletHelperConfig::kMaxProfiles;
+
+        if (atCap) ImGui::BeginDisabled();
+        if (ImGui::Button("New")) {
+            TabletHelperConfig::Profile p;
+            p.name = "Profile " + std::to_string(n + 1);
+            profiles.push_back(std::move(p));
+            active = static_cast<int>(profiles.size()) - 1;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Duplicate")) {
+            TabletHelperConfig::Profile p = profiles[active];
+            p.name += " copy";
+            if (p.name.size() > TabletHelperConfig::kMaxProfileNameLen)
+                p.name.resize(TabletHelperConfig::kMaxProfileNameLen);
+            profiles.push_back(std::move(p));
+            active = static_cast<int>(profiles.size()) - 1;
+        }
+        if (atCap) ImGui::EndDisabled();
+
+        ImGui::SameLine();
+        const bool onlyOne = n <= 1;
+        if (onlyOne) ImGui::BeginDisabled();
+        if (ImGui::Button("Delete")) {
+            profiles.erase(profiles.begin() + active);
+            if (profiles.empty()) profiles.push_back(TabletHelperConfig::Profile{});
+            if (active >= static_cast<int>(profiles.size()))
+                active = static_cast<int>(profiles.size()) - 1;
+        }
+        if (onlyOne) ImGui::EndDisabled();
+
+        if (atCap)
+            ImGui::TextDisabled("Profile limit reached (%d).",
+                                TabletHelperConfig::kMaxProfiles);
     }
 
     static bool Contains(const std::vector<std::string>& v, const std::string& id) {
