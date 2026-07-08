@@ -1,8 +1,7 @@
 // Tablet Helper — PoeFixer plugin (SDK v6)
 // Highlights Precursor Tablets across inventory, stash, special Tablet stash,
 // guild stash and merchant windows, with per-type color + bonus/uses-left
-// filtering. A port of the ExileCore2 "Tablet Helper" plugin to PoeFixer,
-// structured after QuickStash.
+// filtering.
 
 #include "sdk/PluginSDK.h"
 

@@ -5,10 +5,6 @@
 window (inventory, stash, special Tablet stash, guild stash, and merchant),
 colored per type and filterable by their bonuses and remaining uses.
 
-This is a C++ port of the ExileCore2 **Tablet Helper** plugin to PoeFixer,
-structured after the QuickStash plugin (same Plugin SDK v6). The bonus catalog
-and the detection/classification logic are ported from the original.
-
 ## Screenshots
 
 Star highlights with per-tablet uses-left across a Tablet stash tab, plus the
@@ -33,7 +29,7 @@ with the matched bonus names on the label:
   Ritual, Overseer, Temple.
 - **Per-type highlighting** — every type has its own on/off toggle and color.
   Out of the box, every tablet is highlighted in its type color.
-- **Bonus filtering** — pick specific bonuses (from the ported catalog) per type;
+- **Bonus filtering** — pick specific bonuses (from the built-in catalog) per type;
   only tablets carrying enough of them are highlighted. Leave the list empty to
   highlight all tablets of that type.
 - **Uses-left filter** — require a minimum number of remaining uses.
@@ -103,11 +99,11 @@ and `game/`.
 TabletHelper.cpp            Plugin entry: lifecycle, scan cadence, overlay draw, settings UI
 config/Settings.h           Crash-safe JSON settings (per-type config model)
 game/TabletTypes.h          Tablet detection + 7-type classification + normalization
-game/TabletBonusCatalog.h   Bonus catalog (Id -> label/category), ported 1:1
-game/PanelDetector.h        On-screen geometry + hybrid item-rect resolver (from QuickStash)
+game/TabletBonusCatalog.h   Bonus catalog (Id -> label/category)
+game/PanelDetector.h        On-screen geometry + hybrid item-rect resolver
 game/TabletScanner.h        Enumerate inventories, filter tablets, read mods (cached)
 game/TabletMatch.h          Match engine: own-type + Global -> color + labels
 game/HighlightRenderer.h    Border/Cross/Star + labels via GetForegroundDrawList
-sdk/                        PoeFixer Plugin SDK headers (v6)
+sdk/                        PoeFixer plugin headers
 imgui/, third_party/        Vendored (Dear ImGui, nlohmann/json)
 ```

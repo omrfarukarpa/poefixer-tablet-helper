@@ -1,8 +1,7 @@
 #pragma once
 
-// Tablet type keys, detection and classification — ported from the ExileCore2
-// TabletHelper (TabletItem.DetectTabletType / IsTabletEntity). Pure std, no host
-// or ImGui dependency, so it can be unit-reasoned in isolation.
+// Tablet type keys, detection and classification. Pure std, no host or ImGui
+// dependency, so it can be unit-reasoned in isolation.
 
 #include <array>
 #include <cctype>
@@ -25,7 +24,7 @@ inline constexpr const char* Temple     = "Temple";
 inline constexpr const char* Global     = "Global";
 }  // namespace TypeKeys
 
-// The seven real tablet types, in the canonical order the original settings use.
+// The seven real tablet types, in canonical order.
 // (Global is a cross-type scope handled separately.)
 inline const std::array<const char*, 7>& RealTypeKeys() {
     static const std::array<const char*, 7> k = {
@@ -59,8 +58,8 @@ inline bool ContainsCI(std::string_view hay, std::string_view needleLower) {
     return false;
 }
 
-// Normalize a mod/bonus identifier to lowercase-alphanumeric only, matching
-// TabletModInfo.NormalizeIdentifier. "TowerBreachBossChance1" -> "towerbreachbosschance1".
+// Normalize a mod/bonus identifier to lowercase-alphanumeric only.
+// "TowerBreachBossChance1" -> "towerbreachbosschance1".
 inline std::string NormalizeIdentifier(std::string_view value) {
     std::string out;
     out.reserve(value.size());
@@ -70,17 +69,17 @@ inline std::string NormalizeIdentifier(std::string_view value) {
 }
 
 // Drop a trailing run of digits (tier suffixes): "towerbreachbosschance1" ->
-// "towerbreachbosschance". Mirrors TabletModInfo.StripTrailingDigits.
+// "towerbreachbosschance".
 inline std::string StripTrailingDigits(const std::string& v) {
     size_t end = v.size();
     while (end > 0 && std::isdigit(static_cast<unsigned char>(v[end - 1]))) --end;
     return v.substr(0, end);
 }
 
-// "Is this item a Precursor Tablet?" The original keys off the entity metadata
-// path containing "TowerAugment". PoeFixer exposes that path as
-// InventoryItem.Path (pre-materialized, crash-free). We also accept a base-type
-// fallback so a tablet is still caught if Path is ever empty for an item.
+// "Is this item a Precursor Tablet?" We key off the entity metadata path
+// containing "TowerAugment", which PoeFixer exposes as InventoryItem.Path
+// (pre-materialized, crash-free). We also accept a base-type fallback so a
+// tablet is still caught if Path is ever empty for an item.
 inline bool LooksLikeTablet(const std::string& path, const std::string& baseType) {
     if (ContainsCI(path, "toweraugment")) return true;
     if (ContainsCI(baseType, "precursor tablet")) return true;
@@ -88,13 +87,13 @@ inline bool LooksLikeTablet(const std::string& path, const std::string& baseType
 }
 
 // Classify into one of the seven types by substring cascade over the metadata
-// path (plus base type name as a safety net). ORDER MATTERS — first match wins,
-// exactly as TabletItem.DetectTabletType. Returns TypeKeys::Unknown if nothing
-// matched (caller may then fall back to a mod-name scan).
+// path (plus base type name as a safety net). ORDER MATTERS — first match wins.
+// Returns TypeKeys::Unknown if nothing matched (caller may then fall back to a
+// mod-name scan).
 inline const char* ClassifyFromText(const std::string& path,
                                     const std::string& baseType) {
-    // A keyword present in EITHER the path or the base type name counts — same
-    // effect as the original's combined-string cascade, without allocating.
+    // A keyword present in EITHER the path or the base type name counts, without
+    // allocating a combined lowercased string.
     auto has = [&](const char* kw) {
         return ContainsCI(path, kw) || ContainsCI(baseType, kw);
     };
@@ -110,7 +109,7 @@ inline const char* ClassifyFromText(const std::string& path,
 }
 
 // Fallback classification from a mod-name blob (lowercased Name+Id+StatKey of the
-// tablet's implicit mods). Mirrors the mod-text branch of DetectTabletType.
+// tablet's implicit mods), used when the path/base-type cascade returns Unknown.
 inline const char* ClassifyFromModText(const std::string& lowerModText) {
     if (lowerModText.empty()) return TypeKeys::Unknown;
     if (lowerModText.find("abyss") != std::string::npos) return TypeKeys::Abyss;
@@ -128,7 +127,7 @@ inline const char* ClassifyFromModText(const std::string& lowerModText) {
     return TypeKeys::Unknown;
 }
 
-// Full display name, matching TabletItem.ToDisplayName.
+// Full display name.
 inline const char* DisplayName(const std::string& key) {
     if (key == TypeKeys::Irradiated) return "Irradiated Tablet";
     if (key == TypeKeys::Breach)     return "Breach Tablet";

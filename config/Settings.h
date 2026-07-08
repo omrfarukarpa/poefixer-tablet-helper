@@ -1,13 +1,12 @@
 #pragma once
 
-// Tablet Helper settings — crash-safe JSON, mirroring QuickStash's Settings
-// pattern (non-throwing parse, try/catch(...) around the whole body, clamps that
-// share a single source of truth with the DrawSettings sliders). Load runs from
-// OnEnable, so an exception escaping across the C ABI would crash the host.
+// Tablet Helper settings — crash-safe JSON (non-throwing parse, try/catch(...)
+// around the whole body, clamps that share a single source of truth with the
+// DrawSettings sliders). Load runs from OnEnable, so an exception escaping across
+// the C ABI would crash the host.
 //
-// The config model is the "simplified per-type" one: one block per tablet type
-// (plus a Global cross-type block) with enable / color / min-uses-left / a Match
-// bonus multi-select — not the original's multi-group-per-type editor.
+// The config model is one block per tablet type (plus a Global cross-type block)
+// with enable / color / min-uses-left / a Match bonus multi-select.
 
 #include "../game/TabletTypes.h"
 #include "../third_party/json.hpp"

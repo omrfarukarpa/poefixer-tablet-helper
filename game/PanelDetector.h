@@ -1,10 +1,9 @@
 #pragma once
 
-// On-screen geometry helpers — the proven hybrid rect resolver from QuickStash
-// (WithdrawPlanner/PanelDetector), unchanged in behaviour. PoeFixer enumerates
-// EVERY inventory (backpack, equipment, cursor, and every stash tab you own,
-// 100+). An item is only laid out where you can see it in the *visible* tab, so
-// visibility is derived per item/grid rather than by identifying inventory ids.
+// On-screen geometry helpers — a hybrid rect resolver. PoeFixer enumerates EVERY
+// inventory (backpack, equipment, cursor, and every stash tab you own, 100+). An
+// item is only laid out where you can see it in the *visible* tab, so visibility
+// is derived per item/grid rather than by identifying inventory ids.
 //
 // Rect resolution is a hybrid and ORDER MATTERS: per-item screen rect first
 // (special/affinity tabs — currency/fragment/tablet-stash — carry correct

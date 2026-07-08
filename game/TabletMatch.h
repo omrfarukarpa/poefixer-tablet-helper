@@ -3,12 +3,11 @@
 // Match engine: given the settings and a parsed tablet, decide whether to
 // highlight it, in which color, and what label lines to draw.
 //
-// A tablet is evaluated against TWO scopes (as in the original): its own type's
-// config and the Global config. Each scope accepts the tablet when it is
-// enabled, the tablet has enough uses-left, and either the scope selects no
-// bonuses (type-only highlight) or enough of its selected bonuses are present.
-// Own-type color wins when both scopes accept. Unknown-type tablets are never
-// highlighted (faithful to TabletHelper).
+// A tablet is evaluated against TWO scopes: its own type's config and the Global
+// config. Each scope accepts the tablet when it is enabled, the tablet has enough
+// uses-left, and either the scope selects no bonuses (type-only highlight) or
+// enough of its selected bonuses are present. Own-type color wins when both
+// scopes accept. Unknown-type tablets are never highlighted.
 
 #include "../config/Settings.h"
 #include "TabletBonusCatalog.h"

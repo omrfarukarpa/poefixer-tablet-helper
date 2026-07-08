@@ -1,10 +1,9 @@
 #pragma once
 
-// Highlight rendering — a direct port of TabletHelper's DrawHighlight /
-// DrawBorder / DrawCross / DrawStar / DrawGroupLabels, drawn on the ImGui
+// Highlight rendering — Border / Cross / Star plus labels, drawn on the ImGui
 // foreground draw list. PoeFixer's item screen rects are already in ImGui screen
 // space (the overlay is full-screen over the game), so rects map to draw
-// coordinates with no transform — same as QuickStash's DrawWithdrawHighlights.
+// coordinates with no transform.
 //
 // NOMINMAX is NOT defined for this build, so <Windows.h>'s min/max macros could
 // be live; this file avoids std::min/std::max and uses fminf/fmaxf / ternaries.

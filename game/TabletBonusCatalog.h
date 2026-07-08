@@ -1,6 +1,6 @@
 #pragma once
 
-// Precursor Tablet bonus catalog — a faithful port of TabletBonusCatalog.cs.
+// Precursor Tablet bonus catalog.
 // A bonus maps a stable internal mod Id (e.g. "TowerBreachBossChance") to a
 // human label + category. Matching is by internal mod identity only (never by
 // translated tooltip text), because several bonuses can share wording.
