@@ -1,6 +1,6 @@
 # Tablet Helper (PoeFixer)
 
-**Version 1.1.0** — a [PoeFixer](https://github.com/POEFixer/PoeFixer) plugin for
+**Version 1.2.0** — a [PoeFixer](https://github.com/POEFixer/PoeFixer) plugin for
 **Path of Exile 2** that highlights **Precursor Tablets** in every open item
 window (inventory, stash, special Tablet stash, guild stash, and merchant),
 colored per type and filterable by their bonuses and remaining uses.
@@ -22,6 +22,11 @@ with the matched bonus names on the label:
 
 ![Bonus filtering in action](https://i.hizliresim.com/fcr6gxp.png)
 
+Required vs optional bonuses — mark must-have mods, then set separate minimum
+counts for the required and optional pools:
+
+![Required and optional bonus pools](https://i.hizliresim.com/dfxjko0.png)
+
 ## Features
 
 - **Detects Precursor Tablets** by their metadata path (`TowerAugment`) and
@@ -32,6 +37,10 @@ with the matched bonus names on the label:
 - **Bonus filtering** — pick specific bonuses (from the built-in catalog) per type;
   only tablets carrying enough of them are highlighted. Leave the list empty to
   highlight all tablets of that type.
+- **Required vs optional bonuses** — mark any selected bonus as **required** and
+  split matching into two pools: highlight only tablets that carry at least N of
+  the required bonuses *and* at least M of the optional ones. E.g. *must* have
+  "additional map modifier" plus any 2 of 5 others.
 - **Filter profiles** — save multiple named filter setups (colors + bonus
   selections + uses-left per type) and switch between them instantly, so you're
   not locked to a single combination per tablet type. Keep one profile per strat

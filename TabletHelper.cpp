@@ -21,7 +21,7 @@
 #include <unordered_map>
 #include <vector>
 
-inline constexpr const char* kTabletHelperVersion    = "1.1.0";
+inline constexpr const char* kTabletHelperVersion    = "1.2.0";
 inline constexpr const char* kTabletHelperMaintainer = "Omer Faruk ARPA";
 
 class TabletHelperPlugin : public PluginSDK::Plugin {
@@ -272,6 +272,10 @@ private:
         return false;
     }
 
+    static void RemoveFrom(std::vector<std::string>& v, const std::string& id) {
+        v.erase(std::remove(v.begin(), v.end(), id), v.end());
+    }
+
     static void HelpMarker(const char* desc) {
         ImGui::TextDisabled("(?)");
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", desc);
@@ -281,8 +285,13 @@ private:
         ImGui::PushID(t.key.c_str());
 
         const int selCount = static_cast<int>(t.selectedBonusIds.size());
-        char header[96];
-        if (selCount > 0)
+        const int reqCount = static_cast<int>(t.requiredBonusIds.size());
+        const int optCount = selCount - reqCount;
+        char header[112];
+        if (reqCount > 0)
+            std::snprintf(header, sizeof(header), "%s  (%d req + %d opt)###hdr",
+                          t.displayName.c_str(), reqCount, optCount);
+        else if (selCount > 0)
             std::snprintf(header, sizeof(header), "%s  (%d bonus%s)###hdr",
                           t.displayName.c_str(), selCount, selCount == 1 ? "" : "es");
         else
@@ -307,20 +316,39 @@ private:
             }
 
             const auto& bonuses = TabletHelper::GetBonusesFor(t.key);
-            if (selCount > 0) {
-                int cap = selCount < TabletHelperConfig::kMinMatchedMax
-                              ? selCount : TabletHelperConfig::kMinMatchedMax;
-                if (cap < 1) cap = 1;
-                if (t.minMatchedBonuses > cap) t.minMatchedBonuses = cap;
-                ImGui::SliderInt("Min matched bonuses", &t.minMatchedBonuses, 1, cap);
-            } else {
+            if (selCount == 0) {
                 ImGui::TextDisabled("No bonus filter: every %s is highlighted.",
                                     TabletHelper::ShortName(t.key));
+            } else {
+                auto poolSlider = [](const char* label, int* val, int poolTotal) {
+                    int cap = poolTotal < TabletHelperConfig::kMinMatchedMax
+                                  ? poolTotal : TabletHelperConfig::kMinMatchedMax;
+                    if (cap < 1) cap = 1;
+                    if (*val > cap) *val = cap;
+                    if (*val < 1) *val = 1;
+                    ImGui::SliderInt(label, val, 1, cap);
+                };
+                if (reqCount > 0) {
+                    poolSlider("Min required mods", &t.minRequiredBonuses, reqCount);
+                    ImGui::SameLine();
+                    HelpMarker("How many of the REQUIRED bonuses (marked 'req') must be "
+                               "present. Set it to the required count to demand all of them.");
+                }
+                if (optCount > 0) {
+                    poolSlider("Min optional mods", &t.minMatchedBonuses, optCount);
+                    ImGui::SameLine();
+                    HelpMarker("How many of the remaining (optional) selected bonuses "
+                               "must be present.");
+                }
             }
 
             ImGui::Text("Match bonuses (%zu available):", bonuses.size());
             ImGui::SameLine();
-            if (ImGui::SmallButton("Clear selected")) t.selectedBonusIds.clear();
+            if (ImGui::SmallButton("Clear selected")) {
+                t.selectedBonusIds.clear();
+                t.requiredBonusIds.clear();
+            }
+            ImGui::TextDisabled("Tick a bonus, then 'req' to make it required.");
             if (!m_settings.readMods)
                 ImGui::TextDisabled("(bonus matching needs 'Read item mods' ON)");
 
@@ -348,16 +376,26 @@ private:
                     ImGui::SeparatorText(b.Category.c_str());
                 }
                 bool sel = Contains(t.selectedBonusIds, b.Id);
+                bool req = Contains(t.requiredBonusIds, b.Id);
                 ImGui::PushID(b.Id.c_str());
                 if (ImGui::Checkbox(b.Label.c_str(), &sel)) {
                     if (sel) {
                         if (!Contains(t.selectedBonusIds, b.Id))
                             t.selectedBonusIds.push_back(b.Id);
                     } else {
-                        t.selectedBonusIds.erase(
-                            std::remove(t.selectedBonusIds.begin(),
-                                        t.selectedBonusIds.end(), b.Id),
-                            t.selectedBonusIds.end());
+                        RemoveFrom(t.selectedBonusIds, b.Id);
+                        RemoveFrom(t.requiredBonusIds, b.Id);  // unselected -> not required
+                    }
+                }
+                if (sel) {
+                    ImGui::SameLine();
+                    if (ImGui::Checkbox("req", &req)) {
+                        if (req) {
+                            if (!Contains(t.requiredBonusIds, b.Id))
+                                t.requiredBonusIds.push_back(b.Id);
+                        } else {
+                            RemoveFrom(t.requiredBonusIds, b.Id);
+                        }
                     }
                 }
                 ImGui::PopID();

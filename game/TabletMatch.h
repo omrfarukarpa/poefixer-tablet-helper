@@ -14,6 +14,7 @@
 #include "TabletScanner.h"
 #include "TabletTypes.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -25,33 +26,52 @@ struct Evaluation {
     std::vector<std::string> lines;          // composed label lines (may be empty)
 };
 
+inline bool IsRequired(const TabletHelperConfig::TypeConfig& c, const std::string& id) {
+    return std::find(c.requiredBonusIds.begin(), c.requiredBonusIds.end(), id)
+           != c.requiredBonusIds.end();
+}
+
 inline bool ConfigAccepts(const TabletHelperConfig::TypeConfig& c,
                           const ParsedTablet& t, const std::string& bonusScope,
                           std::vector<const Bonus*>* matchedOut = nullptr) {
     if (t.usesLeft < c.minUsesLeft) return false;
     if (c.selectedBonusIds.empty()) return true;  // no bonus filter -> match by type
 
-    int count = 0;
-    std::vector<const Bonus*> matched;
+    // Split the selected bonuses into a required and an optional pool, counting
+    // how many of each are present on the tablet. Matching needs at least
+    // minRequiredBonuses of the required pool AND minMatchedBonuses of the
+    // optional pool; an empty pool imposes no condition. Required matches lead
+    // the label list.
+    std::vector<const Bonus*> reqMatched, optMatched;
+    int reqTotal = 0, optTotal = 0;
     for (const auto& id : c.selectedBonusIds) {
+        const bool req = IsRequired(c, id);
+        (req ? reqTotal : optTotal) += 1;
         const Bonus* b = FindBonus(bonusScope, id);
-        if (b && BonusMatches(*b, t.matchKeys)) {
-            ++count;
-            matched.push_back(b);
-        }
+        if (b && BonusMatches(*b, t.matchKeys))
+            (req ? reqMatched : optMatched).push_back(b);
     }
-    // The requirement can never exceed how many bonuses were actually selected,
-    // so clamp it here rather than trusting the stored field (a hand-edited or
-    // catalog-drift value could otherwise make matching permanently impossible).
-    int required = c.minMatchedBonuses;
-    const int selN = static_cast<int>(c.selectedBonusIds.size());
-    if (required > selN) required = selN;
-    if (required < 1) required = 1;
-    if (count >= required) {
-        if (matchedOut) *matchedOut = std::move(matched);
-        return true;
+
+    // Each threshold clamped to its pool size so a stale/hand-edited value can't
+    // make matching permanently impossible.
+    if (reqTotal > 0) {
+        int need = c.minRequiredBonuses;
+        if (need > reqTotal) need = reqTotal;
+        if (need < 1) need = 1;
+        if (static_cast<int>(reqMatched.size()) < need) return false;
     }
-    return false;
+    if (optTotal > 0) {
+        int need = c.minMatchedBonuses;
+        if (need > optTotal) need = optTotal;
+        if (need < 1) need = 1;
+        if (static_cast<int>(optMatched.size()) < need) return false;
+    }
+
+    if (matchedOut) {
+        reqMatched.insert(reqMatched.end(), optMatched.begin(), optMatched.end());
+        *matchedOut = std::move(reqMatched);
+    }
+    return true;
 }
 
 inline Evaluation EvaluateTablet(const TabletHelperConfig::Settings& s,

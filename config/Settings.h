@@ -41,8 +41,13 @@ struct TypeConfig {
     bool  enabled = true;
     float color[4] = {0.0f, 0.749f, 1.0f, 1.0f};
     int   minUsesLeft = 0;
-    int   minMatchedBonuses = 1;
+    int   minMatchedBonuses = 1;   // threshold for the OPTIONAL pool
+    int   minRequiredBonuses = 1;  // threshold for the REQUIRED pool
     std::vector<std::string> selectedBonusIds;  // Match set; empty = match by type only
+    // Subset of selectedBonusIds that form the "required" pool. Matching needs
+    // >= minRequiredBonuses of these AND >= minMatchedBonuses of the rest
+    // (optional pool). Each threshold is clamped to its pool size.
+    std::vector<std::string> requiredBonusIds;
 };
 
 inline std::vector<TypeConfig> DefaultTypes() {
@@ -93,6 +98,9 @@ inline void ApplyTypeOverrides(std::vector<TypeConfig>& types, const nlohmann::j
         if (e.contains("min_matched_bonuses") && e["min_matched_bonuses"].is_number_integer())
             t->minMatchedBonuses = std::clamp(
                 e["min_matched_bonuses"].get<int>(), 1, kMinMatchedMax);
+        if (e.contains("min_required_bonuses") && e["min_required_bonuses"].is_number_integer())
+            t->minRequiredBonuses = std::clamp(
+                e["min_required_bonuses"].get<int>(), 1, kMinMatchedMax);
         if (e.contains("color") && e["color"].is_array()) {
             const auto& c = e["color"];
             for (int i = 0; i < 4 && i < static_cast<int>(c.size()); ++i)
@@ -110,6 +118,21 @@ inline void ApplyTypeOverrides(std::vector<TypeConfig>& types, const nlohmann::j
                     t->selectedBonusIds.push_back(std::move(s));
             }
         }
+        if (e.contains("required_bonus_ids") && e["required_bonus_ids"].is_array()) {
+            t->requiredBonusIds.clear();
+            for (const auto& id : e["required_bonus_ids"]) {
+                if (!id.is_string()) continue;
+                std::string s = id.get<std::string>();
+                // A required bonus must also be a selected one, and unique.
+                if (std::find(t->selectedBonusIds.begin(),
+                              t->selectedBonusIds.end(), s)
+                        != t->selectedBonusIds.end()
+                    && std::find(t->requiredBonusIds.begin(),
+                                 t->requiredBonusIds.end(), s)
+                        == t->requiredBonusIds.end())
+                    t->requiredBonusIds.push_back(std::move(s));
+            }
+        }
     }
 }
 
@@ -122,7 +145,9 @@ inline nlohmann::json SerializeTypes(const std::vector<TypeConfig>& types) {
         e["color"] = {t.color[0], t.color[1], t.color[2], t.color[3]};
         e["min_uses_left"] = t.minUsesLeft;
         e["min_matched_bonuses"] = t.minMatchedBonuses;
+        e["min_required_bonuses"] = t.minRequiredBonuses;
         e["selected_bonus_ids"] = t.selectedBonusIds;
+        e["required_bonus_ids"] = t.requiredBonusIds;
         arr.push_back(std::move(e));
     }
     return arr;
