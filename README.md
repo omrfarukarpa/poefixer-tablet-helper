@@ -47,7 +47,7 @@ with the matched bonus names on the label:
 
 ## Requirements
 
-- PoeFixer with Plugin SDK **v6** support (same as QuickStash).
+- PoeFixer
 - Path of Exile 2 (Windows).
 
 ## Install
@@ -111,15 +111,3 @@ game/HighlightRenderer.h    Border/Cross/Star + labels via GetForegroundDrawList
 sdk/                        PoeFixer Plugin SDK headers (v6)
 imgui/, third_party/        Vendored (Dear ImGui, nlohmann/json)
 ```
-
-## Credits & disclaimer
-
-Ported from the original ExileCore2 **Tablet Helper** plugin; bonus catalog and
-detection logic derive from it. This is an unofficial, third-party tool that
-reads game memory. Use of third-party tools may violate the Path of Exile Terms
-of Service and could put your account at risk. **Use at your own risk.** Not
-affiliated with or endorsed by Grinding Gear Games or the PoeFixer authors.
-
-Bundled third-party components keep their own licenses: **Dear ImGui** (MIT),
-**nlohmann/json** (MIT). The **PoeFixer Plugin SDK** headers (`sdk/`) belong to
-the PoeFixer project and are included only so the plugin can be built.
