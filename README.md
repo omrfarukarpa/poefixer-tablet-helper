@@ -1,6 +1,6 @@
 # Tablet Helper (PoeFixer)
 
-**Version 1.3.0** — a [PoeFixer](https://github.com/POEFixer/PoeFixer) plugin for
+**Version 1.3.1** — a [PoeFixer](https://github.com/POEFixer/PoeFixer) plugin for
 **Path of Exile 2** that highlights **Precursor Tablets** in every open item
 window (inventory, stash, special Tablet stash, guild stash, and merchant),
 colored per type and filterable by their bonuses and remaining uses.
@@ -48,8 +48,8 @@ to each bonus:
   "additional map modifier" plus any 2 of 5 others.
 - **Min/max value thresholds** — set a min and/or max rolled value per bonus
   (right next to it), so you only match e.g. tablets with **≥12% increased
-  Rarity**. Roll ranges come from an editable `config/tablet_mod_ranges.json`
-  you can update yourself when a patch changes them.
+  Rarity**. Roll ranges are built in; drop an optional
+  `config/tablet_mod_ranges.json` only if you want to override them after a patch.
 - **Filter profiles** — save multiple named filter setups (colors + bonus
   selections + uses-left per type) and switch between them instantly, so you're
   not locked to a single combination per tablet type. Keep one profile per strat
@@ -70,16 +70,17 @@ to each bonus:
 
 ## Install
 
-1. Build (below) or grab `TabletHelper.dll` and `tablet_mod_ranges.json`.
-2. Copy them into your PoeFixer install:
+1. Build (below) or grab `TabletHelper.dll`.
+2. Copy it into your PoeFixer install:
    ```
    <PoeFixer>\Plugins\TabletHelper\TabletHelper.dll
-   <PoeFixer>\Plugins\TabletHelper\config\tablet_mod_ranges.json
    ```
-   The `.json` is optional — without it the plugin still works, only the
-   min/max value sliders lose their roll-range bounds.
 3. Start PoeFixer and enable **Tablet Helper** under **Plugins**.
 4. Settings are saved to `Plugins\TabletHelper\config\settings.json`.
+
+> The DLL is all you need — mod value ranges are built in. Advanced users can
+> optionally drop `tablet_mod_ranges.json` into `Plugins\TabletHelper\config\`
+> to override the roll ranges after a game patch.
 
 > Copying the DLL fails with "Device or resource busy" while PoeFixer is
 > running — close PoeFixer first to overwrite a loaded DLL.
