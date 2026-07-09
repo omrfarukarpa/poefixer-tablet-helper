@@ -18,13 +18,14 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-inline constexpr const char* kTabletHelperVersion    = "1.3.1";
+inline constexpr const char* kTabletHelperVersion    = "1.3.2";
 inline constexpr const char* kTabletHelperMaintainer = "Omer Faruk ARPA";
 
 class TabletHelperPlugin : public PluginSDK::Plugin {
@@ -276,6 +277,23 @@ private:
                                 TabletHelperConfig::kMaxProfiles);
     }
 
+    // A small integer text field where clearing it means 0 (unlike DragInt/
+    // InputInt, which revert to the previous value on an empty box).
+    static void ValueField(const char* id, int* v, int lo, int hi) {
+        char buf[8];
+        std::snprintf(buf, sizeof(buf), "%d", *v);
+        ImGui::SetNextItemWidth(46.f);
+        if (ImGui::InputText(id, buf, sizeof(buf),
+                             ImGuiInputTextFlags_CharsDecimal
+                                 | ImGuiInputTextFlags_AutoSelectAll)) {
+            int nv = (buf[0] == '\0' || (buf[0] == '-' && buf[1] == '\0'))
+                         ? 0 : std::atoi(buf);
+            if (nv < lo) nv = lo;
+            if (nv > hi) nv = hi;
+            *v = nv;
+        }
+    }
+
     // Inline min/max value fields for one bonus row (right of the "req" toggle).
     void DrawBonusValueFilter(TabletHelperConfig::TypeConfig& t, const TabletHelper::Bonus& b) {
         const TabletHelper::ModRange* rg = m_ranges.For(b.NormId);
@@ -289,14 +307,16 @@ private:
 
         ImGui::BeginDisabled(!m_settings.readMods);
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(56.f);
-        ImGui::DragInt("##vmin", &vr.min, 1.0f, lo, hi, "\xE2\x89\xA5%d");
+        ImGui::TextUnformatted("\xE2\x89\xA5");
+        ImGui::SameLine(0.f, 2.f);
+        ValueField("##vmin", &vr.min, lo, hi);
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Min value. Roll range %d-%d%s. 0 = no limit.",
                               rg->min, rg->max, pct ? "%%" : "");
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(56.f);
-        ImGui::DragInt("##vmax", &vr.max, 1.0f, lo, hi, "\xE2\x89\xA4%d");
+        ImGui::TextUnformatted("\xE2\x89\xA4");
+        ImGui::SameLine(0.f, 2.f);
+        ValueField("##vmax", &vr.max, lo, hi);
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Max value. Roll range %d-%d%s. 0 = no limit.",
                               rg->min, rg->max, pct ? "%%" : "");

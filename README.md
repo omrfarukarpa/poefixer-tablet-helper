@@ -1,6 +1,6 @@
 # Tablet Helper (PoeFixer)
 
-**Version 1.3.1** — a [PoeFixer](https://github.com/POEFixer/PoeFixer) plugin for
+**Version 1.3.2** — a [PoeFixer](https://github.com/POEFixer/PoeFixer) plugin for
 **Path of Exile 2** that highlights **Precursor Tablets** in every open item
 window (inventory, stash, special Tablet stash, guild stash, and merchant),
 colored per type and filterable by their bonuses and remaining uses.
