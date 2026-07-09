@@ -136,7 +136,7 @@ inline const char* DisplayName(const std::string& key) {
     if (key == TypeKeys::Ritual)     return "Ritual Tablet";
     if (key == TypeKeys::Overseer)   return "Overseer Tablet";
     if (key == TypeKeys::Temple)     return "Temple Tablet";
-    if (key == TypeKeys::Global)     return "Global";
+    if (key == TypeKeys::Global)     return "All types";
     return "Unknown Tablet";
 }
 
@@ -149,7 +149,7 @@ inline const char* ShortName(const std::string& key) {
     if (key == TypeKeys::Ritual)     return "Ritual";
     if (key == TypeKeys::Overseer)   return "Overseer";
     if (key == TypeKeys::Temple)     return "Temple";
-    if (key == TypeKeys::Global)     return "Global";
+    if (key == TypeKeys::Global)     return "All types";
     return "Unknown";
 }
 

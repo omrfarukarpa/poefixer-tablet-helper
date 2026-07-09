@@ -31,6 +31,29 @@ inline bool IsRequired(const TabletHelperConfig::TypeConfig& c, const std::strin
            != c.requiredBonusIds.end();
 }
 
+// A bonus with a value threshold set only counts as present if the tablet's
+// rolled value for it falls in range. No threshold -> always ok.
+inline bool BonusValueOk(const TabletHelperConfig::TypeConfig& c, const Bonus& b,
+                         const ParsedTablet& t) {
+    auto fit = c.valueFilters.find(b.Id);
+    if (fit == c.valueFilters.end()) return true;
+    const auto& r = fit->second;
+    if (r.min == 0 && r.max == 0) return true;
+
+    int val = 0;
+    bool have = false;
+    auto vit = t.matchValues.find(b.NormId);
+    if (vit != t.matchValues.end()) { val = vit->second; have = true; }
+    else if (!b.NormIdStripped.empty()) {
+        auto v2 = t.matchValues.find(b.NormIdStripped);
+        if (v2 != t.matchValues.end()) { val = v2->second; have = true; }
+    }
+    if (!have) return false;
+    if (r.min != 0 && val < r.min) return false;
+    if (r.max != 0 && val > r.max) return false;
+    return true;
+}
+
 inline bool ConfigAccepts(const TabletHelperConfig::TypeConfig& c,
                           const ParsedTablet& t, const std::string& bonusScope,
                           std::vector<const Bonus*>* matchedOut = nullptr) {
@@ -48,7 +71,7 @@ inline bool ConfigAccepts(const TabletHelperConfig::TypeConfig& c,
         const bool req = IsRequired(c, id);
         (req ? reqTotal : optTotal) += 1;
         const Bonus* b = FindBonus(bonusScope, id);
-        if (b && BonusMatches(*b, t.matchKeys))
+        if (b && BonusMatches(*b, t.matchKeys) && BonusValueOk(c, *b, t))
             (req ? reqMatched : optMatched).push_back(b);
     }
 

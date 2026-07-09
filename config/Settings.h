@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace TabletHelperConfig {
@@ -34,6 +35,9 @@ inline constexpr int   kMinMatchedMax      = 8;    // slider ceiling for min mat
 enum class HighlightMode { Border = 0, Cross = 1, Star = 2 };
 enum class LabelTextMode { White = 0, TypeColor = 1 };
 
+// Per-bonus value threshold. 0 on a side means unbounded there; both 0 = off.
+struct ValueRange { int min = 0; int max = 0; };
+
 // Per-tablet-type (or Global) highlight configuration.
 struct TypeConfig {
     std::string key;          // TabletHelper::TypeKeys::* (JSON identity — ASCII)
@@ -48,6 +52,8 @@ struct TypeConfig {
     // >= minRequiredBonuses of these AND >= minMatchedBonuses of the rest
     // (optional pool). Each threshold is clamped to its pool size.
     std::vector<std::string> requiredBonusIds;
+    // Optional per-bonus value threshold, keyed by bonus Id.
+    std::unordered_map<std::string, ValueRange> valueFilters;
 };
 
 inline std::vector<TypeConfig> DefaultTypes() {
@@ -133,6 +139,16 @@ inline void ApplyTypeOverrides(std::vector<TypeConfig>& types, const nlohmann::j
                     t->requiredBonusIds.push_back(std::move(s));
             }
         }
+        if (e.contains("value_filters") && e["value_filters"].is_object()) {
+            t->valueFilters.clear();
+            for (auto vf = e["value_filters"].begin(); vf != e["value_filters"].end(); ++vf) {
+                if (!vf.value().is_array() || vf.value().size() < 2) continue;
+                ValueRange r;
+                if (vf.value()[0].is_number_integer()) r.min = vf.value()[0].get<int>();
+                if (vf.value()[1].is_number_integer()) r.max = vf.value()[1].get<int>();
+                if (r.min != 0 || r.max != 0) t->valueFilters[vf.key()] = r;
+            }
+        }
     }
 }
 
@@ -148,6 +164,11 @@ inline nlohmann::json SerializeTypes(const std::vector<TypeConfig>& types) {
         e["min_required_bonuses"] = t.minRequiredBonuses;
         e["selected_bonus_ids"] = t.selectedBonusIds;
         e["required_bonus_ids"] = t.requiredBonusIds;
+        nlohmann::json vf = nlohmann::json::object();
+        for (const auto& kv : t.valueFilters)
+            if (kv.second.min != 0 || kv.second.max != 0)
+                vf[kv.first] = {kv.second.min, kv.second.max};
+        e["value_filters"] = std::move(vf);
         arr.push_back(std::move(e));
     }
     return arr;

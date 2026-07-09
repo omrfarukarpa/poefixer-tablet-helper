@@ -1,6 +1,6 @@
 # Tablet Helper (PoeFixer)
 
-**Version 1.2.0** — a [PoeFixer](https://github.com/POEFixer/PoeFixer) plugin for
+**Version 1.3.0** — a [PoeFixer](https://github.com/POEFixer/PoeFixer) plugin for
 **Path of Exile 2** that highlights **Precursor Tablets** in every open item
 window (inventory, stash, special Tablet stash, guild stash, and merchant),
 colored per type and filterable by their bonuses and remaining uses.
@@ -27,6 +27,11 @@ counts for the required and optional pools:
 
 ![Required and optional bonus pools](https://i.hizliresim.com/dfxjko0.png)
 
+Min/max value thresholds — set a minimum and/or maximum rolled value right next
+to each bonus:
+
+![Per-bonus min/max value thresholds](https://i.hizliresim.com/h0c4fyf.png)
+
 ## Features
 
 - **Detects Precursor Tablets** by their metadata path (`TowerAugment`) and
@@ -41,6 +46,10 @@ counts for the required and optional pools:
   split matching into two pools: highlight only tablets that carry at least N of
   the required bonuses *and* at least M of the optional ones. E.g. *must* have
   "additional map modifier" plus any 2 of 5 others.
+- **Min/max value thresholds** — set a min and/or max rolled value per bonus
+  (right next to it), so you only match e.g. tablets with **≥12% increased
+  Rarity**. Roll ranges come from an editable `config/tablet_mod_ranges.json`
+  you can update yourself when a patch changes them.
 - **Filter profiles** — save multiple named filter setups (colors + bonus
   selections + uses-left per type) and switch between them instantly, so you're
   not locked to a single combination per tablet type. Keep one profile per strat
@@ -61,11 +70,14 @@ counts for the required and optional pools:
 
 ## Install
 
-1. Build (below) or grab `TabletHelper.dll`.
-2. Copy it into your PoeFixer install:
+1. Build (below) or grab `TabletHelper.dll` and `tablet_mod_ranges.json`.
+2. Copy them into your PoeFixer install:
    ```
    <PoeFixer>\Plugins\TabletHelper\TabletHelper.dll
+   <PoeFixer>\Plugins\TabletHelper\config\tablet_mod_ranges.json
    ```
+   The `.json` is optional — without it the plugin still works, only the
+   min/max value sliders lose their roll-range bounds.
 3. Start PoeFixer and enable **Tablet Helper** under **Plugins**.
 4. Settings are saved to `Plugins\TabletHelper\config\settings.json`.
 

@@ -92,6 +92,9 @@ inline std::vector<Bonus> SpecificBonuses(const std::string& typeKey) {
             B("UniqueBiomeTabletForest", "Map also counts as a Forest Map", kUnique),
             B("UniqueBiomeTabletMountain", "Map also counts as a Mountain Map", kUnique),
             B("UniqueBiomeTabletWater", "Map also counts as a Water Map", kUnique),
+            B("UniqueBiomeTabletDesert", "Map also counts as a Desert Map", kUnique),
+            B("UniqueBiomeTabletGrass", "Map also counts as a Grassland Map", kUnique),
+            B("UniqueMapsAddIrridiationWhenCompleting", "Completing a non-Irradiated Map adds Irradiation instead", kUnique),
         };
     }
     if (typeKey == TypeKeys::Breach) {

@@ -9,6 +9,7 @@
 #include "game/HighlightRenderer.h"
 #include "game/TabletBonusCatalog.h"
 #include "game/TabletMatch.h"
+#include "game/TabletRanges.h"
 #include "game/TabletScanner.h"
 #include "game/TabletTypes.h"
 
@@ -17,11 +18,13 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-inline constexpr const char* kTabletHelperVersion    = "1.2.0";
+inline constexpr const char* kTabletHelperVersion    = "1.3.0";
 inline constexpr const char* kTabletHelperMaintainer = "Omer Faruk ARPA";
 
 class TabletHelperPlugin : public PluginSDK::Plugin {
@@ -46,6 +49,7 @@ public:
             ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ctx()->ImGuiContext));
 
         m_settings.Load(DirectoryPath());
+        ctx()->Log.Info(m_ranges.Load(DirectoryPath()).c_str());
         m_lastScan = std::chrono::steady_clock::now()
                      - std::chrono::milliseconds(m_settings.scanIntervalMs);
         ctx()->Log.Info("Tablet Helper plugin enabled");
@@ -108,6 +112,8 @@ public:
         ImGui::SeparatorText("Tablet types");
         for (auto& t : m_settings.ActiveTypes())
             DrawTypeConfig(t);
+
+        DrawDebugSettings();
     }
 
     void SaveSettings() override { m_settings.Save(DirectoryPath()); }
@@ -120,11 +126,14 @@ private:
 
     TabletHelperConfig::Settings m_settings;
     TabletHelper::TabletScanner m_scanner;
+    TabletHelper::TabletRanges m_ranges;
     std::vector<TabletHelper::VisibleTablet> m_visible;
     std::vector<DrawItem> m_draw;  // matched tablets + resolved color/labels, per scan
     std::chrono::steady_clock::time_point m_lastScan{};
     // Per-type bonus search text (settings-UI only; not persisted).
     std::unordered_map<std::string, std::string> m_bonusFilter;
+    std::string m_debugStatus;
+    int m_dumpCount = 0;
 
     void RefreshIfNeeded(float w, float h) {
         const auto now = std::chrono::steady_clock::now();
@@ -267,6 +276,62 @@ private:
                                 TabletHelperConfig::kMaxProfiles);
     }
 
+    // Inline min/max value fields for one bonus row (right of the "req" toggle).
+    void DrawBonusValueFilter(TabletHelperConfig::TypeConfig& t, const TabletHelper::Bonus& b) {
+        const TabletHelper::ModRange* rg = m_ranges.For(b.NormId);
+        if (!rg && !b.NormIdStripped.empty()) rg = m_ranges.For(b.NormIdStripped);
+        if (!rg || rg->min == rg->max) return;  // single flat value / no range
+
+        auto& vr = t.valueFilters[b.Id];
+        const int lo = rg->min < 0 ? rg->min : 0;
+        const int hi = rg->max;
+        const bool pct = rg->unit == "percent";
+
+        ImGui::BeginDisabled(!m_settings.readMods);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(56.f);
+        ImGui::DragInt("##vmin", &vr.min, 1.0f, lo, hi, "\xE2\x89\xA5%d");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Min value. Roll range %d-%d%s. 0 = no limit.",
+                              rg->min, rg->max, pct ? "%%" : "");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(56.f);
+        ImGui::DragInt("##vmax", &vr.max, 1.0f, lo, hi, "\xE2\x89\xA4%d");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Max value. Roll range %d-%d%s. 0 = no limit.",
+                              rg->min, rg->max, pct ? "%%" : "");
+        ImGui::EndDisabled();
+    }
+
+    void DrawDebugSettings() {
+        if (!ImGui::CollapsingHeader("Debug: dump tablet mods")) return;
+        ImGui::TextWrapped("Open each stash with tablets and press dump once per stash. "
+                           "Each press APPENDS to one file (up to 40 tablets per press), so "
+                           "you accumulate every tablet across stashes.");
+
+        const auto path = DirectoryPath() / "config" / "tablet_debug_dump.txt";
+        if (ImGui::Button("Scan & dump tablet mods")) {
+            const std::string dump = m_scanner.BuildDebugDump(ctx());
+            std::error_code ec;
+            std::filesystem::create_directories(DirectoryPath() / "config", ec);
+            std::ofstream out(path, std::ios::app);
+            if (out.is_open()) {
+                out << "\n===== DUMP #" << ++m_dumpCount << " =====\n" << dump;
+                m_debugStatus = "Appended dump #" + std::to_string(m_dumpCount)
+                                + " -> " + path.string();
+            } else {
+                m_debugStatus = "Failed to write dump file.";
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Clear dump file")) {
+            std::ofstream out(path, std::ios::trunc);
+            m_dumpCount = 0;
+            m_debugStatus = "Cleared " + path.string();
+        }
+        if (!m_debugStatus.empty()) ImGui::TextWrapped("%s", m_debugStatus.c_str());
+    }
+
     static bool Contains(const std::vector<std::string>& v, const std::string& id) {
         for (const auto& s : v) if (s == id) return true;
         return false;
@@ -364,7 +429,8 @@ private:
             }
             const std::string lf = TabletHelper::ToLowerCopy(filter);
 
-            ImGui::BeginChild("bonuslist", ImVec2(0.f, 170.f), ImGuiChildFlags_Borders);
+            ImGui::BeginChild("bonuslist", ImVec2(0.f, 170.f), ImGuiChildFlags_Borders,
+                              ImGuiWindowFlags_HorizontalScrollbar);
             std::string lastCategory;
             int shown = 0;
             for (const auto& b : bonuses) {
@@ -397,6 +463,7 @@ private:
                             RemoveFrom(t.requiredBonusIds, b.Id);
                         }
                     }
+                    DrawBonusValueFilter(t, b);
                 }
                 ImGui::PopID();
                 ++shown;

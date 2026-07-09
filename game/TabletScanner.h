@@ -19,6 +19,7 @@
 #include "TabletTypes.h"
 #include "sdk/PluginSDK.h"
 
+#include <cmath>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -32,6 +33,7 @@ struct ParsedTablet {
     std::string sourcePath;  // guards against the game reusing an entity address
     int usesLeft = 0;
     std::unordered_set<std::string> matchKeys;  // normalized mod Name/Id (+stripped)
+    std::unordered_map<std::string, int> matchValues;  // same keys -> rounded Value0
     bool modsRead = false;
 };
 
@@ -47,6 +49,16 @@ inline void AddMatchKey(std::unordered_set<std::string>& keys, const std::string
     keys.insert(n);
     std::string s = StripTrailingDigits(n);
     if (!s.empty() && s != n) keys.insert(s);
+}
+
+inline void AddMatchValue(std::unordered_map<std::string, int>& vals,
+                          const std::string& raw, float value) {
+    std::string n = NormalizeIdentifier(raw);
+    if (n.empty()) return;
+    const int iv = static_cast<int>(std::lround(value));
+    vals[n] = iv;
+    std::string s = StripTrailingDigits(n);
+    if (!s.empty() && s != n) vals[s] = iv;
 }
 
 class TabletScanner {
@@ -106,6 +118,58 @@ public:
 
     void Reset() { m_cache.clear(); }
 
+    // Fresh uncached dump of on-screen tablets' raw mods, for confirming internal
+    // ids/Value0 against the bundled range data. Probe-first, confirmed tablets
+    // only, capped — same crash-safe stance as Scan.
+    std::string BuildDebugDump(const PluginSDK::Context* ctx, int maxItems = 40) {
+        std::string s = "[Tablet Helper] mod dump\n";
+        if (!ctx) { s += "no context\n"; return s; }
+
+        ctx->Inventory.Scan(-1);
+        const auto all = ctx->Inventory.GetAll();
+        char line[600];
+        int dumped = 0;
+
+        for (const auto& inv : all) {
+            for (const auto& item : inv.Items) {
+                if (dumped >= maxItems) { s += "\n...(item cap reached)\n"; return s; }
+                if (!LooksLikeTablet(item.Path, item.BaseTypeName)) continue;
+                if (item.Address == 0) continue;
+                if (ctx->Inventory.ReadItemBaseTypeName(item.Address).empty()) continue;
+
+                const auto mods = ctx->Inventory.ReadItemMods(item.Address);
+                std::snprintf(line, sizeof(line), "\n#%d base='%s' path='%s' valid=%d\n",
+                              dumped + 1, item.BaseTypeName.c_str(), item.Path.c_str(),
+                              mods.Valid ? 1 : 0);
+                s += line;
+
+                auto group = [&](const char* tag, const std::vector<PluginSDK::Mod>& g) {
+                    for (const auto& m : g) {
+                        std::string fmt = ctx->Inventory.FormatStat(m.StatKey, m.Value0, m.Value1);
+                        std::snprintf(line, sizeof(line),
+                            "  [%s] id='%s' name='%s' stat='%s' v0=%.2f v1=%.2f :: %s\n",
+                            tag, m.Id.c_str(), m.Name.c_str(), m.StatKey.c_str(),
+                            m.Value0, m.Value1, fmt.c_str());
+                        s += line;
+                    }
+                };
+                group("impl", mods.ImplicitMods);
+                group("expl", mods.ExplicitMods);
+
+                const auto agg = ctx->Inventory.ReadItemAggregatedStats(item.Address);
+                std::snprintf(line, sizeof(line), "  aggregated: %zu pairs\n", agg.size());
+                s += line;
+                for (const auto& pr : agg) {
+                    std::snprintf(line, sizeof(line), "    key=%d value=%d\n", pr.first, pr.second);
+                    s += line;
+                }
+                ++dumped;
+            }
+        }
+        if (dumped == 0) s += "no readable tablets on screen.\n";
+        return s;
+    }
+
 private:
     ParsedTablet Parse(const PluginSDK::Context* ctx,
                        const PluginSDK::InventoryItem& item, bool readMods) {
@@ -139,6 +203,8 @@ private:
                     for (const auto& m : g) {
                         AddMatchKey(p.matchKeys, m.Name);
                         AddMatchKey(p.matchKeys, m.Id);
+                        AddMatchValue(p.matchValues, m.Name, m.Value0);
+                        AddMatchValue(p.matchValues, m.Id, m.Value0);
                         if (implicit) {
                             implicitText += ToLowerCopy(m.Name);
                             implicitText += ' ';
